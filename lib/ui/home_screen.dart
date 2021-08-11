@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:to_do_app/auth/login.dart';
-import 'package:to_do_app/todo/newtodo.dart';
+import 'package:to_do_app/ui/auth/login.dart';
+import 'package:to_do_app/ui/newtodo.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key key}) : super(key: key);
@@ -12,6 +12,18 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  String _userID;
+  bool _hasError = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    setState(() {
+      _userID = FirebaseAuth.instance.currentUser.uid;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -25,8 +37,22 @@ class _HomeScreenState extends State<HomeScreen> {
         onPressed: _newToDo,
       ),
       drawer: Drawer(
-        child: Column(
-          children: [TextButton(onPressed: _logout, child: Text('Logout'))],
+        child: ListView(
+          children: [
+            DrawerHeader(
+              child: Container(
+                width: double.infinity,
+                height: double.infinity,
+                color: Colors.teal.shade300,
+                child: Center(child: Text('Header')),
+              ),
+            ),
+            ListTile(
+              title: Text('Logout'),
+              trailing: Icon(Icons.exit_to_app),
+              onTap: _logout,
+            )
+          ],
         ),
       ),
     );
@@ -38,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: StreamBuilder(
         stream: FirebaseFirestore.instance
             .collection('todos')
-            .doc(FirebaseAuth.instance.currentUser.uid)
+            .doc(_userID)
             .collection('user_todos')
             .orderBy('done', descending: false)
             .snapshots(),
@@ -75,9 +101,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _logout() async {
-    await FirebaseAuth.instance.signOut().whenComplete(() =>
-        Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => LoginScreen())));
+    await FirebaseAuth.instance.signOut().then((_) {
+      Navigator.of(context).pop(); // close drawer
+      Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => LoginScreen()));
+    }).catchError((error) {
+      _error(context, error);
+    });
   }
 
   Widget _error(BuildContext context, String s) {
@@ -117,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onPressed: () async {
                     await FirebaseFirestore.instance
                         .collection('todos')
-                        .doc(FirebaseAuth.instance.currentUser.uid)
+                        .doc(_userID)
                         .collection('user_todos')
                         .doc(data.docs[position].id)
                         .delete();
@@ -133,7 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     if (!data.docs[position]['done']) {
                       await FirebaseFirestore.instance
                           .collection('todos')
-                          .doc(FirebaseAuth.instance.currentUser.uid)
+                          .doc(_userID)
                           .collection('user_todos')
                           .doc(data.docs[position].id)
                           .update({'done': true});

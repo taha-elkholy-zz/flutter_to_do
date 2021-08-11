@@ -1,7 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:to_do_app/auth/login.dart';
-import 'package:to_do_app/todo/home_screen.dart';
+import 'package:to_do_app/ui/auth/login.dart';
+import 'package:to_do_app/ui/home_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key key}) : super(key: key);
@@ -11,6 +12,7 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  TextEditingController _nameController = TextEditingController();
   TextEditingController _emailController = TextEditingController();
   TextEditingController _passwordController = TextEditingController();
   TextEditingController _confirmPasswordController = TextEditingController();
@@ -24,6 +26,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void dispose() {
     super.dispose();
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -48,6 +51,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
           key: _formKey,
           child: Column(
             children: [
+              TextFormField(
+                controller: _nameController,
+                decoration: InputDecoration(hintText: 'Name'),
+                validator: (value) {
+                  if (value.isEmpty) {
+                    return 'Name is required';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(
+                height: 16,
+              ),
               TextFormField(
                 controller: _emailController,
                 decoration: InputDecoration(hintText: 'Email'),
@@ -143,8 +159,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
             .createUserWithEmailAndPassword(
                 email: _emailController.text,
                 password: _passwordController.text)
-            .then((value) => Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => HomeScreen())));
+            .then((authResult) {
+          FirebaseFirestore.instance.collection('profiles').doc().set({
+            'name': _nameController.text,
+            'user_id': authResult.user.uid
+          }).then((_) {
+            Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => HomeScreen()));
+          }).catchError((error) {
+            //error
+          });
+        });
       } on FirebaseAuthException catch (e) {
         if (e.code == 'weak-password') {
           setState(() {
@@ -163,19 +188,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         }
       } catch (e) {
         print(e);
-      }
-      UserCredential user = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-              email: _emailController.text, password: _passwordController.text)
-          .whenComplete(() => setState(() {
-                _isLoading = false;
-              }));
-
-      if (user == null) {
-        print('Error while creating user');
-      } else {
-        Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => HomeScreen()));
       }
     }
   }

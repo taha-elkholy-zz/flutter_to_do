@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:to_do_app/ui/auth/login.dart';
 import 'package:to_do_app/ui/newtodo.dart';
+import 'package:to_do_app/utilities/views_utilities.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key key}) : super(key: key);
@@ -34,7 +35,10 @@ class _HomeScreenState extends State<HomeScreen> {
       body: _content(context),
       floatingActionButton: FloatingActionButton(
         child: Icon(Icons.add),
-        onPressed: _newToDo,
+        onPressed: () {
+          Navigator.of(context)
+              .push(MaterialPageRoute(builder: (context) => NewToDo()));
+        },
       ),
       drawer: Drawer(
         child: ListView(
@@ -71,20 +75,35 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context, AsyncSnapshot snapshot) {
           switch (snapshot.connectionState) {
             case ConnectionState.none:
-              _error(context, 'Connection Error');
+              return Center(
+                child: Text(
+                  'Connection Error',
+                  style: ViewsUtilities.errorStyle,
+                ),
+              );
               break;
             case ConnectionState.waiting:
-              _loading(context);
+              return ViewsUtilities.loading;
               break;
             case ConnectionState.active:
             case ConnectionState.done:
               if (snapshot.hasError) {
-                _error(context, 'Error in returned data');
+                return Center(
+                  child: Text(
+                    'Error in returned data',
+                    style: ViewsUtilities.errorStyle,
+                  ),
+                );
               } else {
                 if (snapshot.hasData) {
                   return _drawScreen(context, snapshot.data);
                 } else {
-                  _error(context, 'No Data To show');
+                  return Center(
+                    child: Text(
+                      'No Data To show',
+                      style: ViewsUtilities.errorStyle,
+                    ),
+                  );
                 }
               }
               break;
@@ -95,34 +114,19 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _newToDo() {
-    Navigator.of(context)
-        .push(MaterialPageRoute(builder: (context) => NewToDo()));
-  }
-
   void _logout() async {
     await FirebaseAuth.instance.signOut().then((_) {
       Navigator.of(context).pop(); // close drawer
       Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => LoginScreen()));
     }).catchError((error) {
-      _error(context, error);
+      return Center(
+        child: Text(
+          error,
+          style: ViewsUtilities.errorStyle,
+        ),
+      );
     });
-  }
-
-  Widget _error(BuildContext context, String s) {
-    return Center(
-      child: Text(
-        s,
-        style: TextStyle(color: Colors.red),
-      ),
-    );
-  }
-
-  Widget _loading(BuildContext context) {
-    return Center(
-      child: CircularProgressIndicator(),
-    );
   }
 
   Widget _drawScreen(BuildContext context, QuerySnapshot data) {

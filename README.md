@@ -1,6 +1,6 @@
 # to_do_app
 
-A new Flutter project with firebase as backend.
+A ToDo Flutter project with firebase as backend.
 
 ## Getting Started
 
